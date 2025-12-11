@@ -48,5 +48,5 @@ all:
 Execute the playbook using your environment-specific configuration:
 
 ```bash
-ansible-playbook deploy-acme-proxy.yml -i inventory.yaml
+ansible-playbook deploy.yaml -i inventory.yaml
 ```

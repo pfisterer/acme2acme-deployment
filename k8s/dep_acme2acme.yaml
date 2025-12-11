@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acme2acme
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: acme2acme
+  template:
+    metadata:
+      labels:
+        app: acme2acme
+    spec:
+      containers:
+        - name: acme2acme
+          image: grindsa/acme2certifier:nginx-wsgi
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          volumeMounts:
+            - name: acme-src-cfg
+              subPath: acme_srv.cfg
+              mountPath: /var/www/acme2certifier/volume/acme_srv.cfg
+            - name: acme-dummy-hooks
+              mountPath: /hooks
+              readOnly: true
+            - name: acme-handler
+              subPath: acme_handler.py
+              mountPath: /opt/acme_handler.py
+      volumes:
+        - name: acme-src-cfg
+          configMap:
+            name: acme-src-cfg
+        - name: acme-dummy-hooks
+          configMap:
+            name: acme-dummy-hooks
+        - name: acme-handler
+          configMap:
+            name: acme-handler
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: acme2acme
+  namespace: default
+spec:
+  selector:
+    app: acme2acme
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      name: www
+    - protocol: TCP
+      port: 443
+      targetPort: 443
+      name: tls
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: acme2acme
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "{{ external_dns_cluster_issuer_name }}"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "{{ acme2acme_hostname }}"
+      secretName: acme2acme-cert
+  rules:
+    - host: "{{ acme2acme_hostname }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: acme2acme
+                port:
+                  number: 80

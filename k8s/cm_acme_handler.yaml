@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acme-handler
+  namespace: default
+data:
+  acme_handler.py: |-
+    {{ lookup('file', 'k8s/acme_handler.py') | indent(4) }}

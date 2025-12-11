@@ -1,0 +1,5 @@
+.vscode
+.DS_Store
+base/acme_srv.cfg
+private-*
+kubeconfig-*

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acme-src-cfg
+  namespace: default
+data:
+  acme_srv.cfg: |
+    # See https://github.com/grindsa/acme2certifier for documentation
+    [DEFAULT]
+    debug: {{ acme2acme_debug }}
+
+    [CAhandler]
+    allowed_domainlist: {{acme2acme_allowed_domainlist}}
+    acme_account_email: {{ cert_manager_email }}
+    acme_url: {{ acme2acme_acme_url }}
+    handler_file: /opt/acme_handler.py
+    acme_keyfile: /tmp/acme.key
+
+    eab_kid: {{ acme2acme_eab_kid }}
+    eab_hmac_key: {{ acme2acme_eab_hmac_key }}
+
+    dns_update_script: /hooks/dummy.sh
+    dns_update_script_variables: {}
+    dns_validation_timeout: 15
+
+    [DBhandler]
+    db_file: /tmp/acme2certifier.db
+
+    [Certificate]
+    enrollment_timeout: 15
+
+    [Order]
+    tnauthlist_support: False
+
+    [Directory]
+    suppress_product_information: True
+    tos_url: {{ acme2acme_tos_url }}

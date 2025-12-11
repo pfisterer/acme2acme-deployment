@@ -1,0 +1,48 @@
+#! ANSIBLE_ROLES_PATH=~/Desktop/k8s/ansible-roles/ ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=yaml ANSIBLE_LOAD_CALLBACK_PLUGINS=1 ansible-playbook -i private-inventory.yaml
+
+---
+# -----------------------------------------------------------------
+# --- install k8s and configure the cluster
+# --- using https://github.com/pfisterer/k3s-dhbw-cloud-role
+# -----------------------------------------------------------------
+- name: Deploy k3s via external role
+  hosts: all
+  tags: [k3s]
+  become: true
+  roles:
+    - role: k3s-dhbw-cloud-role
+
+# -----------------------------------------------------------------
+# --- Deploy ACME2CERTIFIER
+# -----------------------------------------------------------------
+- name: Deploy acme2certifier
+  tags: [acme2certifier]
+  hosts: all
+  become: true
+
+  tasks:
+    # -----------------------------------------------------------------
+    # --- Apply Kubernetes Manifests
+    # -----------------------------------------------------------------
+    - name: Apply templated Kubernetes manifests via k8s module
+      kubernetes.core.k8s:
+        state: present
+        template: "k8s/{{ item }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+      loop:
+        - cm_acme_handler.yaml
+        - cm_acme2certifier_config.yaml
+        - cm_dummy.sh.yaml
+        - dep_acme2acme.yaml
+      register: k8s_apply_result
+
+    # -----------------------------------------------------------------
+    # --- Restart Deployment if files were changed
+    # -----------------------------------------------------------------
+    - name: Rollout restart if configmap/secrets changed
+      ansible.builtin.command: kubectl rollout restart deployment/acme2acme --namespace default
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      when: k8s_apply_result.changed
+      tags:
+        - skip_ansible_lint

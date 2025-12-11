@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acme-dummy-hooks
+  namespace: default
+data:
+  dummy.sh: |
+    #!/bin/sh
+    echo "Dummy hook called: $1 $CERTBOT_DOMAIN $CERTBOT_VALIDATION"
+    # do nothing
